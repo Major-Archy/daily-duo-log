@@ -72,14 +72,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Spenditure and workout tracker" },
+      { name: "description", content: "A React app for tracking personal expenses and logging workouts in one place." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Spenditure and workout tracker" },
+      { property: "og:description", content: "A React app for tracking personal expenses and logging workouts in one place." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Spenditure and workout tracker" },
+      { name: "twitter:description", content: "A React app for tracking personal expenses and logging workouts in one place." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9241a9b3-183a-49b8-8b05-191267cb952a/id-preview-4c6ddb32--d01fa63e-ec7d-416f-9fd3-715fe75be072.lovable.app-1778485481843.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9241a9b3-183a-49b8-8b05-191267cb952a/id-preview-4c6ddb32--d01fa63e-ec7d-416f-9fd3-715fe75be072.lovable.app-1778485481843.png" },
     ],
     links: [
       {
