@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { supabase } from "../../lib/supabase";
+import { useEffect } from "react";
 import { Wallet, Plus, Trash2, TrendingUp } from "lucide-react";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import {
@@ -59,27 +61,35 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function ExpenseTracker() {
-  const [expenses, setExpenses] = usePersistentState<Expense[]>("pulse:expenses", []);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [budget, setBudget] = usePersistentState<number>("pulse:budget", 1500);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState<string>(today());
 
-  const addExpense = (e: React.FormEvent) => {
+useEffect(() => {
+  supabase.from("expenses").select("*")
+    .order("created_at", { ascending: false })
+    .then(({ data }) => {
+      if (data) setExpenses(data as Expense[]);
+    });
+}, []);
+
+  const addExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = parseFloat(amount);
     if (!value || value <= 0) return;
-    setExpenses((prev) => [
-      {
-        id: crypto.randomUUID(),
-        amount: value,
-        category,
-        description: description.trim() || category,
-        date,
-      },
-      ...prev,
-    ]);
+    const newExpense = {
+  amount: value,
+  category,
+  description: description.trim() || category,
+  date,
+};
+await supabase.from("expenses").insert(newExpense);
+const { data } = await supabase.from("expenses").select("*")
+  .order("created_at", { ascending: false });
+if (data) setExpenses(data as Expense[]);
     setAmount("");
     setDescription("");
   };
