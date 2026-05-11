@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Dumbbell, Plus, Trash2, Flame, CalendarDays } from "lucide-react";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +57,7 @@ const TYPE_COLOR: Record<WorkoutType, string> = {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function WorkoutTracker() {
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [workouts, setWorkouts] = usePersistentState<Workout[]>("pulse:workouts", []);
   const [date, setDate] = useState(today());
   const [type, setType] = useState<WorkoutType>("Strength");
   const [duration, setDuration] = useState("");
@@ -341,9 +342,22 @@ export function WorkoutTracker() {
         </Card>
 
         <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Dumbbell className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold">Workout history</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Dumbbell className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold">Workout history</h3>
+            </div>
+            {workouts.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (confirm("Delete all workouts?")) setWorkouts([]);
+                }}
+              >
+                Clear all
+              </Button>
+            )}
           </div>
           {workouts.length === 0 ? (
             <div className="text-center py-10">

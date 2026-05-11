@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Wallet, Plus, Trash2, TrendingUp } from "lucide-react";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import {
   PieChart,
   Pie,
@@ -58,8 +59,8 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function ExpenseTracker() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [budget, setBudget] = useState<number>(1500);
+  const [expenses, setExpenses] = usePersistentState<Expense[]>("pulse:expenses", []);
+  const [budget, setBudget] = usePersistentState<number>("pulse:budget", 1500);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [description, setDescription] = useState("");
@@ -283,7 +284,20 @@ export function ExpenseTracker() {
         </Card>
 
         <Card className="p-6">
-          <h3 className="font-semibold mb-4">Recent transactions</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Recent transactions</h3>
+            {expenses.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (confirm("Delete all expenses?")) setExpenses([]);
+                }}
+              >
+                Clear all
+              </Button>
+            )}
+          </div>
           {expenses.length === 0 ? (
             <EmptyState
               icon="🧾"
