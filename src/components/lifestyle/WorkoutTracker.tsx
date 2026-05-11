@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Dumbbell, Plus, Trash2, Flame, CalendarDays } from "lucide-react";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
