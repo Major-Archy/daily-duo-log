@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Wallet, Plus, Trash2, TrendingUp } from "lucide-react";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import {
   PieChart,
   Pie,
