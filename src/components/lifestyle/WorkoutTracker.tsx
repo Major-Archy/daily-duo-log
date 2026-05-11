@@ -342,9 +342,22 @@ export function WorkoutTracker() {
         </Card>
 
         <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Dumbbell className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold">Workout history</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Dumbbell className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold">Workout history</h3>
+            </div>
+            {workouts.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (confirm("Delete all workouts?")) setWorkouts([]);
+                }}
+              >
+                Clear all
+              </Button>
+            )}
           </div>
           {workouts.length === 0 ? (
             <div className="text-center py-10">
