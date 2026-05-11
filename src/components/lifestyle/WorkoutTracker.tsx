@@ -57,7 +57,7 @@ const TYPE_COLOR: Record<WorkoutType, string> = {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function WorkoutTracker() {
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [workouts, setWorkouts] = usePersistentState<Workout[]>("pulse:workouts", []);
   const [date, setDate] = useState(today());
   const [type, setType] = useState<WorkoutType>("Strength");
   const [duration, setDuration] = useState("");
