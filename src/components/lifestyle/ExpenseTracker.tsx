@@ -284,7 +284,20 @@ export function ExpenseTracker() {
         </Card>
 
         <Card className="p-6">
-          <h3 className="font-semibold mb-4">Recent transactions</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Recent transactions</h3>
+            {expenses.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (confirm("Delete all expenses?")) setExpenses([]);
+                }}
+              >
+                Clear all
+              </Button>
+            )}
+          </div>
           {expenses.length === 0 ? (
             <EmptyState
               icon="🧾"
