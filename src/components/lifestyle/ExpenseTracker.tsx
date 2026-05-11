@@ -59,8 +59,8 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function ExpenseTracker() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [budget, setBudget] = useState<number>(1500);
+  const [expenses, setExpenses] = usePersistentState<Expense[]>("pulse:expenses", []);
+  const [budget, setBudget] = usePersistentState<number>("pulse:budget", 1500);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [description, setDescription] = useState("");
