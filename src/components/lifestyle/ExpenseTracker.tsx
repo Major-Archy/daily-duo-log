@@ -1,7 +1,6 @@
-import { useMemo, useState } from "react";
-import { supabase } from "../../lib/supabase";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Wallet, Plus, Trash2, TrendingUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import {
   PieChart,
@@ -60,42 +59,69 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function ExpenseTracker() {
+type Props = { userId: string };
+
+export function ExpenseTracker({ userId }: Props) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [budget, setBudget] = usePersistentState<number>("pulse:budget", 1500);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState<string>(today());
+  const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  supabase.from("expenses").select("*")
-    .order("created_at", { ascending: false })
-    .then(({ data }) => {
-      if (data) setExpenses(data as Expense[]);
-    });
-}, []);
+  const reload = async () => {
+    const { data, error } = await supabase
+      .from("expenses")
+      .select("id, amount, category, description, date")
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      setExpenses(
+        data.map((d) => ({
+          id: d.id,
+          amount: Number(d.amount),
+          category: d.category as ExpenseCategory,
+          description: d.description ?? "",
+          date: d.date,
+        })),
+      );
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const addExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = parseFloat(amount);
     if (!value || value <= 0) return;
-    const newExpense = {
-  amount: value,
-  category,
-  description: description.trim() || category,
-  date,
-};
-await supabase.from("expenses").insert(newExpense);
-const { data } = await supabase.from("expenses").select("*")
-  .order("created_at", { ascending: false });
-if (data) setExpenses(data as Expense[]);
+    const { error } = await supabase.from("expenses").insert({
+      user_id: userId,
+      amount: value,
+      category,
+      description: description.trim() || category,
+      date,
+    });
+    if (error) return;
     setAmount("");
     setDescription("");
+    reload();
   };
 
-  const remove = (id: string) =>
+  const remove = async (id: string) => {
     setExpenses((prev) => prev.filter((x) => x.id !== id));
+    await supabase.from("expenses").delete().eq("id", id);
+  };
+
+  const clearAll = async () => {
+    if (!confirm("Delete all expenses?")) return;
+    setExpenses([]);
+    await supabase.from("expenses").delete().eq("user_id", userId);
+  };
 
   const monthKey = new Date().toISOString().slice(0, 7);
   const monthExpenses = expenses.filter((e) => e.date.startsWith(monthKey));
@@ -297,18 +323,14 @@ if (data) setExpenses(data as Expense[]);
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold">Recent transactions</h3>
             {expenses.length > 0 && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  if (confirm("Delete all expenses?")) setExpenses([]);
-                }}
-              >
+              <Button size="sm" variant="ghost" onClick={clearAll}>
                 Clear all
               </Button>
             )}
           </div>
-          {expenses.length === 0 ? (
+          {loading ? (
+            <EmptyState icon="⏳" title="Loading…" text="Fetching your data." />
+          ) : expenses.length === 0 ? (
             <EmptyState
               icon="🧾"
               title="Nothing here yet"
