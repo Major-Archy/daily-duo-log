@@ -1,8 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Wallet, Dumbbell, Sparkles } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Wallet, Dumbbell, Sparkles, LogOut } from "lucide-react";
 import { ExpenseTracker } from "@/components/lifestyle/ExpenseTracker";
 import { WorkoutTracker } from "@/components/lifestyle/WorkoutTracker";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -21,7 +24,21 @@ export const Route = createFileRoute("/")({
 type Tab = "expenses" | "workouts";
 
 function Index() {
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [tab, setTab] = useState<Tab>("expenses");
+
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/login" });
+  }, [loading, user, navigate]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -39,23 +56,36 @@ function Index() {
             </h1>
           </div>
 
-          <div
-            role="tablist"
-            aria-label="Sections"
-            className="inline-flex p-1 rounded-full bg-card border border-border shadow-sm"
-          >
-            <TabButton
-              active={tab === "expenses"}
-              onClick={() => setTab("expenses")}
-              icon={<Wallet className="h-4 w-4" />}
-              label="Expenses"
-            />
-            <TabButton
-              active={tab === "workouts"}
-              onClick={() => setTab("workouts")}
-              icon={<Dumbbell className="h-4 w-4" />}
-              label="Workouts"
-            />
+          <div className="flex items-center gap-3">
+            <div
+              role="tablist"
+              aria-label="Sections"
+              className="inline-flex p-1 rounded-full bg-card border border-border shadow-sm"
+            >
+              <TabButton
+                active={tab === "expenses"}
+                onClick={() => setTab("expenses")}
+                icon={<Wallet className="h-4 w-4" />}
+                label="Expenses"
+              />
+              <TabButton
+                active={tab === "workouts"}
+                onClick={() => setTab("workouts")}
+                icon={<Dumbbell className="h-4 w-4" />}
+                label="Workouts"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/login" });
+              }}
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </header>
 
@@ -63,11 +93,15 @@ function Index() {
           key={tab}
           className="animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
-          {tab === "expenses" ? <ExpenseTracker /> : <WorkoutTracker />}
+          {tab === "expenses" ? (
+            <ExpenseTracker userId={user.id} />
+          ) : (
+            <WorkoutTracker userId={user.id} />
+          )}
         </main>
 
         <footer className="mt-12 text-center text-xs text-muted-foreground">
-          Data is kept in memory for this session.
+          Signed in as {user.email} · Data is saved to your account.
         </footer>
       </div>
     </div>

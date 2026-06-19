@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dumbbell, Plus, Trash2, Flame, CalendarDays } from "lucide-react";
-import { usePersistentState } from "@/hooks/use-persistent-state";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,8 +56,11 @@ const TYPE_COLOR: Record<WorkoutType, string> = {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function WorkoutTracker() {
-  const [workouts, setWorkouts] = usePersistentState<Workout[]>("pulse:workouts", []);
+type Props = { userId: string };
+
+export function WorkoutTracker({ userId }: Props) {
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(today());
   const [type, setType] = useState<WorkoutType>("Strength");
   const [duration, setDuration] = useState("");
@@ -67,6 +70,34 @@ export function WorkoutTracker() {
   const [exSets, setExSets] = useState("3");
   const [exReps, setExReps] = useState("10");
   const [exWeight, setExWeight] = useState("0");
+
+  const reload = async () => {
+    const { data, error } = await supabase
+      .from("workouts")
+      .select("id, date, type, duration, notes, exercises")
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      setWorkouts(
+        data.map((w) => ({
+          id: w.id,
+          date: w.date,
+          type: w.type as WorkoutType,
+          duration: w.duration,
+          notes: w.notes ?? undefined,
+          exercises: Array.isArray(w.exercises)
+            ? (w.exercises as Exercise[])
+            : undefined,
+        })),
+      );
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const addExercise = () => {
     if (!exName.trim()) return;
@@ -83,35 +114,41 @@ export function WorkoutTracker() {
     setExName("");
   };
 
-  const addWorkout = (e: React.FormEvent) => {
+  const addWorkout = async (e: React.FormEvent) => {
     e.preventDefault();
     const dur = parseInt(duration);
     if (!dur || dur <= 0) return;
-    setWorkouts((prev) => [
-      {
-        id: crypto.randomUUID(),
-        date,
-        type,
-        duration: dur,
-        notes: notes.trim() || undefined,
-        exercises: type === "Strength" && exercises.length ? exercises : undefined,
-      },
-      ...prev,
-    ]);
+    const exs = type === "Strength" && exercises.length ? exercises : [];
+    const { error } = await supabase.from("workouts").insert({
+      user_id: userId,
+      date,
+      type,
+      duration: dur,
+      notes: notes.trim() || null,
+      exercises: exs,
+    });
+    if (error) return;
     setDuration("");
     setNotes("");
     setExercises([]);
+    reload();
   };
 
-  const remove = (id: string) =>
+  const remove = async (id: string) => {
     setWorkouts((prev) => prev.filter((w) => w.id !== id));
+    await supabase.from("workouts").delete().eq("id", id);
+  };
 
-  // Streak: consecutive days with at least one workout, ending today or yesterday
+  const clearAll = async () => {
+    if (!confirm("Delete all workouts?")) return;
+    setWorkouts([]);
+    await supabase.from("workouts").delete().eq("user_id", userId);
+  };
+
   const streak = useMemo(() => {
     const dates = new Set(workouts.map((w) => w.date));
     let count = 0;
     const cursor = new Date();
-    // allow streak to start from today or yesterday
     if (!dates.has(cursor.toISOString().slice(0, 10))) {
       cursor.setDate(cursor.getDate() - 1);
       if (!dates.has(cursor.toISOString().slice(0, 10))) return 0;
@@ -123,7 +160,6 @@ export function WorkoutTracker() {
     return count;
   }, [workouts]);
 
-  // Last 7 days
   const week = useMemo(() => {
     const arr: { date: string; label: string; minutes: number }[] = [];
     for (let i = 6; i >= 0; i--) {
@@ -348,18 +384,16 @@ export function WorkoutTracker() {
               <h3 className="font-semibold">Workout history</h3>
             </div>
             {workouts.length > 0 && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  if (confirm("Delete all workouts?")) setWorkouts([]);
-                }}
-              >
+              <Button size="sm" variant="ghost" onClick={clearAll}>
                 Clear all
               </Button>
             )}
           </div>
-          {workouts.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-10 text-sm text-muted-foreground">
+              Loading…
+            </div>
+          ) : workouts.length === 0 ? (
             <div className="text-center py-10">
               <div className="text-4xl mb-2">🏋️</div>
               <div className="font-medium">No workouts logged</div>
